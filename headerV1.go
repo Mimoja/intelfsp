@@ -4,8 +4,8 @@ package intelfsp
 
 import "fmt"
 
-type FSPInfoHeaderV1 struct {
-	FSPCommonInfoHeader
+type InfoHeaderV1 struct {
+	CommonInfoHeader
 	ImageRevision          uint32
 	ImageID                [8]byte
 	ImageSize              uint32
@@ -20,7 +20,7 @@ type FSPInfoHeaderV1 struct {
 	Reserved               uint32
 }
 
-func (ih FSPInfoHeaderV1) Summary() string {
+func (ih InfoHeaderV1) Summary() string {
 	s := fmt.Sprintf("Signature                   : %s\n", ih.Signature)
 	s += fmt.Sprintf("Header Length               : %d\n", ih.HeaderLength)
 	s += fmt.Sprintf("Reserved1                   : %#04x\n", ih.Reserved1)
@@ -41,3 +41,10 @@ func (ih FSPInfoHeaderV1) Summary() string {
 
 	return s
 }
+
+func (ih InfoHeaderV1) GetImageSize() uint32 {
+	return ih.ImageSize
+}
+
+func (ih InfoHeaderV1) GetImageAttributes() *ImageAttributes         { return nil }
+func (ih InfoHeaderV1) GetComponentAttributes() *ComponentAttributes { return nil }

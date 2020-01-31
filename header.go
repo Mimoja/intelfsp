@@ -6,8 +6,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"strings"
 )
-
 
 const (
 	FSPHeaderSignature            = "FSPH"
@@ -20,12 +20,63 @@ const (
 	FixedExtendedInfoHeaderLength = 20
 )
 
+type ImageAttributes struct {
+	GraphicsSupport     *bool
+	DispatchModeSupport *bool
+}
+
+func (ia ImageAttributes) String() string {
+	var attrs []string
+
+	if ia.GraphicsSupport != nil && *ia.GraphicsSupport{
+		attrs = append(attrs,"Graphics Display Supported")
+	} else if ia.GraphicsSupport != nil && !*ia.GraphicsSupport{
+		attrs = append(attrs,"Graphics Display Not Supported")
+	}
+
+	if ia.DispatchModeSupport != nil && *ia.DispatchModeSupport{
+		attrs = append(attrs,"Dispatch Mode Supported")
+	} else if ia.GraphicsSupport != nil && !*ia.GraphicsSupport{
+		attrs = append(attrs,"Dispatch Mode Not Supported")
+	}
+
+	return strings.Join(attrs, "|")
+}
+
+
+type ComponentAttributes struct {
+	ReleaseBuild    bool
+	OfficialRelease bool
+	Type            Type
+	TypeName        string
+}
+
+func (ca ComponentAttributes) String() string {
+	var attrs []string
+	if ca.ReleaseBuild {
+		attrs = append(attrs, "Release Build")
+	} else {
+		attrs = append(attrs, "Debug Build")
+	}
+	if ca.OfficialRelease {
+		attrs = append(attrs, "Official Release")
+	} else {
+		attrs = append(attrs, "Test Release")
+	}
+
+	attrs = append(attrs, ca.TypeName)
+
+	return strings.Join(attrs, "|")
+}
 
 type BinaryFSPHeader interface {
 	Summary() string
+	GetImageSize() uint32
+	GetImageAttributes() *ImageAttributes
+	GetComponentAttributes() *ComponentAttributes
 }
 
-type FSPCommonInfoHeader struct {
+type CommonInfoHeader struct {
 	Signature      [4]byte
 	HeaderLength   uint32
 	Reserved1      uint16
@@ -39,13 +90,13 @@ type HeaderRevision uint8
 func (hr HeaderRevision) GetHeader() (BinaryFSPHeader, error) {
 	switch hr {
 	case 0x01:
-		return &FSPInfoHeaderV1{}, nil
+		return &InfoHeaderV1{}, nil
 	case 0x02:
-		return &FSPInfoHeaderV2{}, nil
+		return &InfoHeaderV2{}, nil
 	case 0x03:
-		return &FSPInfoHeaderV3{}, nil
+		return &InfoHeaderV3{}, nil
 	case 0x04:
-		return &FSPInfoHeaderV4{}, nil
+		return &InfoHeaderV4{}, nil
 	default:
 		return nil, fmt.Errorf("Unknown Header Revision: 0x%03X", hr)
 	}
@@ -78,12 +129,11 @@ var fspTypeNames = map[Type]string{
 	TypeReserved: "FSP-ReservedType",
 }
 
-
 func ParseHeader(b []byte) (*BinaryFSPHeader, error) {
 	if len(b) < FixedInfoHeaderLength {
 		return nil, fmt.Errorf("short FSP Info Header length %d; want at least %d", len(b), FixedInfoHeaderLength)
 	}
-	var f FSPCommonInfoHeader
+	var f CommonInfoHeader
 
 	reader := bytes.NewReader(b)
 	if err := binary.Read(reader, binary.LittleEndian, &f); err != nil {

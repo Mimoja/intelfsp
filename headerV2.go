@@ -6,8 +6,8 @@ import (
 	"fmt"
 )
 
-type FSPInfoHeaderV2 struct {
-	FSPCommonInfoHeader
+type InfoHeaderV2 struct {
+	CommonInfoHeader
 	ImageRevision             uint32
 	ImageID                   [8]byte
 	ImageSize                 uint32
@@ -24,7 +24,7 @@ type FSPInfoHeaderV2 struct {
 	FSPSiliconInitEntryOffset uint32
 }
 
-func (ih FSPInfoHeaderV2) Summary() string {
+func (ih InfoHeaderV2) Summary() string {
 	s := fmt.Sprintf("Signature                   : %s\n", ih.Signature)
 	s += fmt.Sprintf("Header Length               : %d\n", ih.HeaderLength)
 	s += fmt.Sprintf("Reserved1                   : %#04x\n", ih.Reserved1)
@@ -35,6 +35,8 @@ func (ih FSPInfoHeaderV2) Summary() string {
 	s += fmt.Sprintf("Image Size                  : %#08x %d\n", ih.ImageSize, ih.ImageSize)
 	s += fmt.Sprintf("Image Base                  : %#08x %d\n", ih.ImageBase, ih.ImageBase)
 	s += fmt.Sprintf("Image Attribute             : %#08x\n", ih.ImageAttribute)
+	s += fmt.Sprintf("Image Attribute             : %#08x\n", ih.ImageAttribute)
+
 	s += fmt.Sprintf("Cfg Region Offset           : %#08x %d\n", ih.CfgRegionOffset, ih.CfgRegionOffset)
 	s += fmt.Sprintf("Cfg Region Size             : %#08x %d\n", ih.CfgRegionSize, ih.CfgRegionSize)
 	s += fmt.Sprintf("API Entry Num               : %#08x\n", ih.ApiEntryNum)
@@ -46,3 +48,15 @@ func (ih FSPInfoHeaderV2) Summary() string {
 	s += fmt.Sprintf("FSPSiliconInit Entry Offset : %#08x %d\n", ih.FSPSiliconInitEntryOffset, ih.FSPSiliconInitEntryOffset)
 	return s
 }
+
+func (ih InfoHeaderV2) GetImageSize() uint32 {
+	return ih.ImageSize
+}
+
+func (ih InfoHeaderV2) GetImageAttributes() *ImageAttributes {
+	graphicsSupport := ih.ImageAttribute&0b0001 != 0
+	return &ImageAttributes{
+		GraphicsSupport: &graphicsSupport,
+	}
+}
+func (ih InfoHeaderV2) GetComponentAttributes() *ComponentAttributes { return nil }

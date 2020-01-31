@@ -4,8 +4,8 @@ package intelfsp
 
 import "fmt"
 
-type FSPInfoHeaderV3 struct {
-	FSPCommonInfoHeader
+type InfoHeaderV3 struct {
+	CommonInfoHeader
 	ImageRevision             uint32
 	ImageID                   [8]byte
 	ImageSize                 uint32
@@ -23,7 +23,7 @@ type FSPInfoHeaderV3 struct {
 	FSPSiliconInitEntryOffset uint32
 }
 
-func (ih FSPInfoHeaderV3) Summary() string {
+func (ih InfoHeaderV3) Summary() string {
 	s := fmt.Sprintf("Signature                   : %s\n", ih.Signature)
 	s += fmt.Sprintf("Header Length               : %d\n", ih.HeaderLength)
 	s += fmt.Sprintf("Reserved1                   : %#04x\n", ih.Reserved1)
@@ -45,4 +45,34 @@ func (ih FSPInfoHeaderV3) Summary() string {
 	s += fmt.Sprintf("TempRAMExit Entry Offset    : %#08x %d\n", ih.TempRAMExitEntryOffset, ih.TempRAMExitEntryOffset)
 	s += fmt.Sprintf("FSPSiliconInit Entry Offset : %#08x %d\n", ih.FSPSiliconInitEntryOffset, ih.FSPSiliconInitEntryOffset)
 	return s
+}
+
+func (ih InfoHeaderV3) GetImageSize() uint32 {
+	return ih.ImageSize
+}
+
+func (ih InfoHeaderV3) GetImageAttributes() *ImageAttributes {
+	graphicsSupport := ih.ImageAttribute&0b0001 != 0
+	return &ImageAttributes{
+		GraphicsSupport: &graphicsSupport,
+	}
+}
+
+func (ih InfoHeaderV3) GetComponentAttributes() *ComponentAttributes {
+	ca := ComponentAttributes{
+		ReleaseBuild:    ih.ComponentAttribute&0b0001 != 0,
+		OfficialRelease: ih.ComponentAttribute&0b0010 != 0,
+		Type:            Type(ih.ComponentAttribute >> 12 & 0x0F),
+	}
+
+	ca.Type = ca.ValidateType()
+	ca.TypeName = fspTypeNames[ca.Type]
+	return &ca
+}
+
+func (ca ComponentAttributes) ValidateType() Type {
+	if _, ok := fspTypeNames[ca.Type]; ok {
+		return ca.Type
+	}
+	return TypeReserved
 }
