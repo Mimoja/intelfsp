@@ -1,6 +1,7 @@
 package intelfsp
 
 import (
+	"bytes"
 	"fmt"
 )
 
@@ -16,6 +17,29 @@ type IntelFSP struct {
 	ComponentAttribute *ComponentAttributes
 	ExtendedInfo       *ExtendedFSPHeader
 	Raw                []byte
+}
+
+func FindAndParse(bts []byte) []IntelFSP {
+	fsp := []IntelFSP{}
+	index := 0
+	offset := 0
+	for index >= 0 {
+		index = bytes.Index(bts[offset:], []byte(FSPHeaderSignature))
+
+		if index >= 0 &&
+			bts[offset+index+8] == 0 && bts[offset+index+9] == 0 {
+			hdr, err := Parse(bts[offset+index:])
+			if err != nil {
+				offset += index + 1
+				continue
+			}
+			if hdr != nil {
+				fsp = append(fsp, *hdr)
+			}
+			offset += index + 1
+		}
+	}
+	return fsp;
 }
 
 func Parse(b []byte) (*IntelFSP, error) {
@@ -52,13 +76,13 @@ func (fsp IntelFSP) Summary() string {
 	if fsp.ImageAttributes != nil {
 		s += fmt.Sprintf("--- IMAGE ATTRIBUTES ---\n")
 		s += fsp.ImageAttributes.String()
-		s+="\n"
+		s += "\n"
 	}
 
 	if fsp.ComponentAttribute != nil {
 		s += fmt.Sprintf("--- COMPONENT ATTRIBUTES ---\n")
 		s += fsp.ComponentAttribute.String()
-		s+="\n"
+		s += "\n"
 	}
 	if fsp.ExtendedInfo != nil {
 		s += fmt.Sprintf("--- EXT INFO HEADER ---\n")
